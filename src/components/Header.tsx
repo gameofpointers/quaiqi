@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { getLastUpdatedTime } from "@/services/cryptoApi";
+import { getLatestPrices } from "@/services/priceService";
 import { RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 
@@ -8,6 +8,11 @@ export function Header() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
+    const updateTimestamp = async () => {
+      const prices = await getLatestPrices();
+      setLastUpdated(new Date(prices.timestamp));
+    };
+
     // Initial update
     updateTimestamp();
     
@@ -16,11 +21,6 @@ export function Header() {
     
     return () => clearInterval(intervalId);
   }, []);
-
-  const updateTimestamp = () => {
-    const timestamp = getLastUpdatedTime();
-    setLastUpdated(new Date(timestamp));
-  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
@@ -31,7 +31,7 @@ export function Header() {
         </div>
         <div className="flex items-center space-x-4">
           {lastUpdated && (
-            <div className=" md:flex items-center text-xs text-muted-foreground">
+            <div className="md:flex items-center text-xs text-muted-foreground">
               <RefreshCw className="h-3 w-3 mr-1" />
               <span>Data Updated: {format(lastUpdated, "HH:mm:ss")}</span>
             </div>

@@ -1,7 +1,6 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getPriceHistory } from "@/services/cryptoApi";
+import { getQiPriceHistory } from "@/services/priceService";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { format } from "date-fns";
 
@@ -13,24 +12,24 @@ interface ChartData {
 export function PriceChart() {
   const [priceData, setPriceData] = useState<ChartData[]>([]);
   const [timeRange, setTimeRange] = useState<"1h" | "24h" | "7d" | "30d">("24h");
-  
+
   useEffect(() => {
+    const fetchData = async () => {
+      const data = await getQiPriceHistory();
+      // Sort data by timestamp in ascending order
+      const sortedData = [...data].sort((a, b) => a.timestamp - b.timestamp);
+      setPriceData(sortedData);
+    };
+
     // Initial load of data
-    const initialData = getPriceHistory();
-    setPriceData(initialData);
+    fetchData();
     
     // Set up interval to update chart data
-    const interval = setInterval(() => {
-      const updatedData = getPriceHistory();
-      // Only update if we have data to prevent flickering
-      if (updatedData.length > 0) {
-        setPriceData(updatedData);
-      }
-    }, 30000); // Update every 30 seconds
+    const interval = setInterval(fetchData, 30000); // Update every 30 seconds
     
     return () => clearInterval(interval);
   }, []);
-  
+
   // Function to format timestamps on X axis
   const formatXAxis = (timestamp: number) => {
     return format(new Date(timestamp), "HH:mm");
@@ -42,7 +41,7 @@ export function PriceChart() {
     
     const now = Date.now();
     let cutoffTime;
-    
+
     switch (timeRange) {
       case "1h":
         cutoffTime = now - 3600000; // 1 hour in ms
@@ -57,17 +56,17 @@ export function PriceChart() {
       default:
         cutoffTime = now - 86400000; // 24 hours in ms
     }
-    
+
     return priceData.filter(data => data.timestamp >= cutoffTime);
   };
-  
+
   // Custom tooltip content
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-popover border border-border p-2 rounded-md shadow-md text-sm">
           <p className="font-medium">{format(new Date(label), "MMM dd, HH:mm")}</p>
-          <p className="text-accent">QI Price: ${payload[0].value.toFixed(6)}</p>
+          <p className="text-accent">QI Price: ${payload[0].value.toFixed(2)}</p>
         </div>
       );
     }
@@ -131,7 +130,7 @@ export function PriceChart() {
 
 function Button({ children, active, onClick }: { children: React.ReactNode, active: boolean, onClick: () => void }) {
   return (
-    <button 
+    <button
       onClick={onClick}
       className={`px-3 py-1 text-xs rounded-md transition-colors ${
         active 

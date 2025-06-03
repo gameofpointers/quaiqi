@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quaiqi-backend
+  labels:
+    app: quaiqi-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: quaiqi-backend
+  template:
+    metadata:
+      labels:
+        app: quaiqi-backend
+    spec:
+      containers:
+      - name: quaiqi-backend
+        image: quaiqi-backend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3002
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        env:
+        - name: PORT
+          value: "3002"
+        - name: NODE_ENV
+          value: "production"
+        readinessProbe:
+          httpGet:
+            path: /api/prices/latest
+            port: 3002
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/prices/latest
+            port: 3002
+          initialDelaySeconds: 15
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quaiqi-backend
+spec:
+  selector:
+    app: quaiqi-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3002
+  type: ClusterIP 
